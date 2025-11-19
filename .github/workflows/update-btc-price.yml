@@ -1,0 +1,45 @@
+name: 每日更新比特币价格
+
+on:
+  schedule:
+    # 每天北京时间 12:00 运行 (UTC 04:00)
+    - cron: '0 4 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  update-price:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      
+      - name: 安装依赖
+        run: |
+          pip install requests
+      
+      - name: 运行价格更新脚本
+        run: |
+          python update_btc_price.py
+      
+      - name: 配置 Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      
+      - name: 提交并推送更改
+        run: |
+          git add btc-price\ all.csv
+          if git diff --staged --quiet; then
+            echo "没有更改需要提交"
+          else
+            git commit -m "🤖 自动更新比特币价格 $(date -u +%Y-%m-%d)"
+            git push
+          fi
